@@ -1,0 +1,64 @@
+heat_template_version: 2017-09-01
+
+description: deploy single CS hypervisor
+
+parameters:
+  vm_name:
+    type: string
+    label: VM Name
+    description: Please enter a name for your VM
+    default: myvmnamehere
+  flavor_name:
+    type: string
+    label: Flavor Name
+    description: Flavor of the instance to be created.
+    default: m1.xlarge
+    constraints:
+      - allowed_values: [m1.medium, m1.large, m1.xlarge]
+        description:
+          Value must be one of 'm1.medium', 'm1.large', or 'm1.xlarge'.
+  vol_size:
+    type: number
+    label: Volume Size
+    description: Volume size in Gb
+    default: 20
+  image_name:
+    type: string
+    label: Image Name
+    description: Select Centos or Ubuntu.
+    default: Ubuntu-16.04
+    constraints:
+      - allowed_values: [Ubuntu-16.04, CentOS-7]
+        description:
+          Value must be one of 'Ubuntu-16.04' or 'CentOS-7'.
+  ssh_key:
+    type: string
+    label: Key Name
+    description: SSH key to be used for all instances
+    default: silver-surfer
+  vm_pass:
+    type: string
+    label: VM Password
+    description:  Password for the ubuntu/centos user
+    default: winterwonderland
+  vm_count:
+    type: number
+    label: Number of VMs
+    description: Number of VMs
+    default: 2
+
+resources:
+  slaveresgrp:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: vm_count }
+      resource_def: 
+        type: hypervisor.yaml
+        properties:
+          key_name: { get_param: ssh_key }
+          flavor: { get_param: flavor_name }
+          name: {get_param: vm_name }
+          password: { get_param: vm_pass }
+          size: { get_param: vol_size }
+          image: { get_param: image_name }
+

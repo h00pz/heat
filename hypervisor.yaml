@@ -1,0 +1,80 @@
+heat_template_version: 2017-09-01
+
+description: deploy single CS hypervisor
+
+resources:
+  instance:
+    type: OS::Nova::Server
+    depends_on: cinder_volume
+    properties:
+      key_name: { get_param: key_name }
+      flavor: { get_param: flavor_name }
+      name: {get_param: vm_name }
+      block_device_mapping: [{ device_name: "vda", volume_id : { get_resource : cinder_volume }, delete_on_termination : "true" }]
+      networks:
+         - { port: { get_resource: mgmt_port } }
+         - { port: { get_attr: [trunk0, port_id] } }
+      user_data_format: RAW
+      user_data:
+        get_resource: cloud_config
+        
+  cloud_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        password: { get_param: vm_pass }
+        chpasswd: { expire: False }
+        ssh_pwauth: True
+
+  cinder_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: { get_param: vol_size }
+      image: { get_param: image_name }
+        
+  mgmt_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: 1f9fd29a-7916-41ff-9fc8-cff777f63144
+  parent_port:
+     type: OS::Neutron::Port
+     properties:
+       network_id: 20b860b8-051b-4874-bc6e-e22e3d51e6e9
+  subport1:
+    type: OS::Neutron::Port
+    properties:
+      network_id: 497a91ee-dd6a-4c6e-81e7-871ea80e6fa3
+      mac_address: { get_attr: [parent_port, mac_address] }
+  subport2:
+    type: OS::Neutron::Port
+    properties:
+      network_id: 52285662-cca0-4326-9ec6-a674224a138d
+      mac_address: { get_attr: [parent_port, mac_address] }
+    
+  trunk0:
+    type: OS::Neutron::Trunk
+    properties:
+       port: { get_resource: parent_port }
+       sub_ports:
+         - { port: { get_resource: subport1 },
+           segmentation_type: vlan,
+           segmentation_id: 2066 }
+         - { port: { get_resource: subport2 },
+           segmentation_type: vlan,
+           segmentation_id: 2067 }
+
+outputs:
+  mgmt_port/fixed_ips:
+    value: { get_attr: [mgmt_port, fixed_ips] }
+  parent_port/mac_adress:
+    value: { get_attr: [parent_port, mac_address] }
+  parent_port/name:
+    value: { get_attr: [parent_port, name] }
+  subport1/fixed_ips:
+    value: { get_attr: [subport1, fixed_ips] }
+  subport1/mac_address:
+    value: { get_attr: [subport1, mac_address] }
+  subport2/fixed_ips:
+    value: { get_attr: [subport2, fixed_ips] }
+  subport2/mac_address:
+    value: { get_attr: [subport2, mac_address] }

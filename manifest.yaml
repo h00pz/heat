@@ -1,0 +1,8 @@
+Author: mhooper@platform9.com
+Description: deploy single CS hypervisor
+Format: Heat.HOT/1.0
+FullName: io.murano.apps.generated.Hv7
+Name: hv-7
+Tags:
+- Heat-generated
+Type: Application
